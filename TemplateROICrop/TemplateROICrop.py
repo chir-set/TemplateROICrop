@@ -178,7 +178,7 @@ class TemplateROICropLogic(ScriptedLoadableModuleLogic):
     """Validates if the output is not the same as input
     """
     if not inputVolumeNode:
-      logging.debug('isValidInputOutputData failed: no input volume node defined')
+      logging.debug('isValidInputData failed: no input volume node defined')
       return False
     return True
 
@@ -192,7 +192,7 @@ class TemplateROICropLogic(ScriptedLoadableModuleLogic):
     # https://www.slicer.org/wiki/Documentation/Nightly/ScriptRepository
     displayNode = inputVolume.GetDisplayNode()
     displayNode.AutoWindowLevelOff()
-    # CTA-Bones
+    # CT-Bones
     displayNode.SetWindow(1000)
     displayNode.SetLevel(400)
     
@@ -293,6 +293,9 @@ USAGE : Save a known ROI, having a distinct object name, in a *.acsv file first.
         Select a template ROI.
         Apply to crop the volume.
         Example: CT scan from chest to feet. Template ROI from diaphragm to ankle. Template ROI for the aorto-iliac segment.
+        
+        Big DICOM volume sample with my useful ROIs :
+        https://mega.nz/#!UEtAmYgS!gyHsEM-_fV2FNn99jiil3fM0BB4Z9vuWs6IZxsxr81c
         
         DISCLAIMER
         This module suits my particular needs.
