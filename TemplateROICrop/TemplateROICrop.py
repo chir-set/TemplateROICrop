@@ -51,8 +51,8 @@ class TemplateROICropWidget(ScriptedLoadableModuleWidget):
 
     # Layout within the dummy collapsible button
     parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
-    version = qt.QLabel(TITLE + ' - version 2')
-    parametersFormLayout.addRow(version)
+    #version = qt.QLabel(TITLE + ' - version 2')
+    #parametersFormLayout.addRow(version)
 
     #
     # input volume selector
