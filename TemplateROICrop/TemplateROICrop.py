@@ -188,6 +188,14 @@ class TemplateROICropLogic(ScriptedLoadableModuleLogic):
     """
     if not self.hasImageData(inputVolume):
         return False
+    """
+    Add Data no longer loads DICOM series rightly
+    See : 
+    https://discourse.slicer.org/t/dicom-volume-orientation-may-be-bad/10068/1
+    https://discourse.slicer.org/t/python-how-to-centre-volume-on-load/10220/1
+    """
+    volumesLogic = slicer.modules.volumes.logic()
+    volumesLogic.CenterVolume(inputVolume)
     
     # https://www.slicer.org/wiki/Documentation/Nightly/ScriptRepository
     displayNode = inputVolume.GetDisplayNode()
