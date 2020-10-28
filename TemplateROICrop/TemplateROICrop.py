@@ -18,12 +18,10 @@ class TemplateROICrop(ScriptedLoadableModule):
     self.parent.title = TITLE
     self.parent.categories = ["Utilities"]
     self.parent.dependencies = []
-    self.parent.contributors = ["SET (chir.set@free.fr)"] # replace with "Firstname Lastname (Organization)"
+    self.parent.contributors = ["SET (Hobbyist)"] # replace with "Firstname Lastname (Organization)"
     self.parent.helpText = """
-This is an example of scripted loadable module bundled in an extension.
-It performs a simple thresholding on the input volume and optionally captures a screenshot.
+Crops a volume based on a saved template ROI. See more information in <a href="https://github.com/chir-set/TemplateROICrop">module documentation</a>
 """
-    self.parent.helpText += self.getDefaultModuleDocumentationLink()
     self.parent.acknowledgementText = """
 This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc.
 and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
@@ -61,7 +59,8 @@ class TemplateROICropWidget(ScriptedLoadableModuleWidget):
     self.inputSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
     self.inputSelector.selectNodeUponCreation = True
     self.inputSelector.addEnabled = False
-    self.inputSelector.removeEnabled = False
+    self.inputSelector.removeEnabled = True
+    self.inputSelector.renameEnabled = True
     self.inputSelector.noneEnabled = False
     self.inputSelector.showHidden = False
     self.inputSelector.showChildNodeTypes = False
@@ -76,7 +75,8 @@ class TemplateROICropWidget(ScriptedLoadableModuleWidget):
     self.outputSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
     self.outputSelector.selectNodeUponCreation = False
     self.outputSelector.addEnabled = False
-    self.outputSelector.removeEnabled = False
+    self.outputSelector.removeEnabled = True
+    self.outputSelector.renameEnabled = True
     self.outputSelector.noneEnabled = True
     self.outputSelector.showHidden = False
     self.outputSelector.showChildNodeTypes = False
@@ -129,16 +129,21 @@ class TemplateROICropWidget(ScriptedLoadableModuleWidget):
 
   def onSelect(self):
     self.gotoVRButton.enabled = False
+    self.outputSelector.setCurrentNode(None)
     
   def onApplyButton(self):
     self.gotoVRButton.enabled = False
     logic = TemplateROICropLogic()
-    logic.run(self.inputSelector.currentNode(), self.outputSelector, self.gotoVRButton, self.ROITemplateSelector)
+    [success, outputVolumeNodeID] = logic.run(self.inputSelector.currentNode(), self.ROITemplateSelector.currentPath)
+    if success:
+        self.outputSelector.setCurrentNodeID(outputVolumeNodeID)
+    else:
+        self.outputSelector.setCurrentNode(None)
+    self.gotoVRButton.enabled = True
     
   def onGoToVR(self):
-    mw = slicer.util.mainWindow()
-    ms = mw.moduleSelector()
-    ms.selectModule('VolumeRendering')
+    mainWindow = slicer.util.mainWindow()
+    mainWindow.moduleSelector().selectModule('VolumeRendering')
   
   # Slicer hangs when a combobox item is selected !!!
   # def onPathChanged(self):
@@ -161,32 +166,11 @@ class TemplateROICropLogic(ScriptedLoadableModuleLogic):
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
 
-  def hasImageData(self, volumeNode):
-    """This is an example logic method that
-    returns true if the passed in volume
-    node has valid image data
-    """
-    if not volumeNode:
-      logging.debug('hasImageData failed: no volume node')
-      return False
-    if volumeNode.GetImageData() is None:
-      logging.debug('hasImageData failed: no image data in volume node')
-      return False
-    return True
-
-  def isValidInputData(self, inputVolumeNode):
-    """Validates if the output is not the same as input
-    """
-    if not inputVolumeNode:
-      logging.debug('isValidInputData failed: no input volume node defined')
-      return False
-    return True
-
-  def run(self, inputVolume, outputSelector, gotoVRButton, ROITemplateSelector):
+  def run(self, inputVolume, ROITemplateSelectorPath):
     """
     Run the actual algorithm
     """
-    if not self.hasImageData(inputVolume):
+    if inputVolume is None:
         return False
     """
     Add Data no longer loads DICOM series rightly
@@ -205,7 +189,7 @@ class TemplateROICropLogic(ScriptedLoadableModuleLogic):
     displayNode.SetLevel(400)
     
     # https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/util.py
-    [success,roi]=slicer.util.loadAnnotationROI(ROITemplateSelector.currentPath, True)
+    [success,roi]=slicer.util.loadAnnotationROI(ROITemplateSelectorPath, True)
     """
     TODO: Prevent the file path from being added to the recent history list. Or delete the entry. Perhaps Slicer should prevent duplicate entries in that list.
     """
@@ -221,11 +205,9 @@ class TemplateROICropLogic(ScriptedLoadableModuleLogic):
     cvpn.SetVoxelBased(True)
     cvpn.VoxelBasedOn()
     cropLogic.Apply(cvpn)
-    gotoVRButton.enabled = True
     roi.SetDisplayVisibility(False)
     
     outputVolumeNodeID = cvpn.GetOutputVolumeNodeID()
-    outputSelector.setCurrentNodeID(outputVolumeNodeID)
     #https://www.slicer.org/wiki/Documentation/4.3/Developers/Python_scripting
     views = ['Red', 'Yellow', 'Green']
     for view in views:
@@ -234,8 +216,7 @@ class TemplateROICropLogic(ScriptedLoadableModuleLogic):
         view_cn.SetBackgroundVolumeID(outputVolumeNodeID)
         view_logic.FitSliceToAll()
     
-    # outputSelector.currentNode().GetDisplayNode().SetAndObserveColorNodeID('vtkMRMLColorTableNodeFullRainbow')
-    return True
+    return [success, outputVolumeNodeID]
 
 
 class TemplateROICropTest(ScriptedLoadableModuleTest):
